@@ -1,6 +1,5 @@
-import { window, Position, Range, languages, DiagnosticRelatedInformation, Location, DiagnosticSeverity } from 'vscode';
-import vscode from "vscode";
-import fetch from 'node-fetch';
+const vscode = require('vscode');
+const fetch = require('node-fetch');
 
 var api = "https://mentor.duden.de/api/grammarcheck?_format=json";
 
@@ -12,18 +11,17 @@ var errors = [];
  */
 async function spellCheck(text) {
     return new Promise((resolve, reject) => {
-        let permission = vscode.workspace.getConfiguration('duden-mentor.grantPermissions');
-        let apiKey = vscode.workspace.getConfiguration('duden-mentor.apiKey');
-        console.log(apiKey);
-        let body = { text: text, "grantPermissions": permission };
+        let permission = vscode.workspace.getConfiguration('duden-mentor').get("grantPermissions");
+        let cookie = vscode.workspace.getConfiguration('duden-mentor').get("cookie");
+        let body = { text: text };
 
-        if(text.length > 800){
+        if(!cookie && text.length > 800){
             reject("Character limit (800) reached. Need to add API-Key" + text.length);
         }
 
         fetch(api, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'cookie': cookie, },
             body: JSON.stringify(body),
         }).then(res => res.json())
             .then(function (json) {
@@ -38,7 +36,7 @@ async function spellCheck(text) {
     });
 }
 
-const errorDecorationType = window.createTextEditorDecorationType({
+const errorDecorationType = vscode.window.createTextEditorDecorationType({
     // cursor: 'crosshair',
     // use a themable color. See package.json for the declaration and default values.
     backgroundColor: { id: 'duden.error' }
@@ -46,7 +44,7 @@ const errorDecorationType = window.createTextEditorDecorationType({
 
 function highlightErrors(text, spellAdvices, selection) {
     if (spellAdvices == null || spellAdvices.length <= 0) {
-        window.showInformationMessage("No errors");
+        vscode.window.showInformationMessage("No errors");
     }
 
     // line breaks => for offset calculation
@@ -55,7 +53,7 @@ function highlightErrors(text, spellAdvices, selection) {
         if (text[i] === "\n") indices.push(i);
     }
 
-    let activeEditor = window.activeTextEditor;
+    let activeEditor = vscode.window.activeTextEditor;
 
     spellAdvices.forEach(spellAdvice => {
         // get spelladvice values
@@ -77,36 +75,36 @@ function highlightErrors(text, spellAdvices, selection) {
         // console.log(offset + "<->L:" + lineOffset + "<->C:" + charOffset);
 
         // selection offset
-        let startPos = new Position(selection.start.line + lineOffset, selection.start.character + charOffset);
-        let endPos = new Position(selection.start.line + lineOffset, selection.start.character + charOffset + length);
+        let startPos = new vscode.Position(selection.start.line + lineOffset, selection.start.character + charOffset);
+        let endPos = new vscode.Position(selection.start.line + lineOffset, selection.start.character + charOffset + length);
 
         // decorations
-        let decoration = { range: new Range(startPos, endPos), hoverMessage: shortMessage };
+        let decoration = { range: new vscode.Range(startPos, endPos), hoverMessage: shortMessage };
         errors.push(decoration);
         activeEditor.setDecorations(errorDecorationType, errors);
 
         // display diagnostics with fixes
-        let document = window.activeTextEditor.document;
-        showDiagnostics(document, new Range(startPos, endPos), spellAdvice);
+        let document = vscode.window.activeTextEditor.document;
+        showDiagnostics(document, new vscode.Range(startPos, endPos), spellAdvice);
     });
 
 }
 
 function showDiagnostics(document, range, spellAdvice) {
-    const collection = languages.createDiagnosticCollection('Info');
+    const collection = vscode.languages.createDiagnosticCollection('Info');
     collections.push(collection);
 
     let infos = [];
-    infos.push(new DiagnosticRelatedInformation(new Location(document.uri, range), "Err: " + spellAdvice.originalError));
+    infos.push(new vscode.DiagnosticRelatedInformation(new vscode.Location(document.uri, range), "Err: " + spellAdvice.originalError));
     spellAdvice.proposals.forEach(proposal => {
-        infos.push(new DiagnosticRelatedInformation(new Location(document.uri, range), "Fix: " + proposal));
+        infos.push(new vscode.DiagnosticRelatedInformation(new vscode.Location(document.uri, range), "Fix: " + proposal));
     });
 
     collection.set(document.uri, [{
         code: spellAdvice.type,
         message: spellAdvice.errorMessage,
         range: range,
-        severity: DiagnosticSeverity.Warning,
+        severity: vscode.DiagnosticSeverity.Warning,
         source: 'Duden',
         relatedInformation: infos
     }]);
@@ -119,10 +117,10 @@ function reset() {
     });
 
     errors = [];
-    window.activeTextEditor.setDecorations(errorDecorationType, errors);
+    vscode.window.activeTextEditor.setDecorations(errorDecorationType, errors);
 }
 
-export default {
+module.exports = {
     reset,
     spellCheck,
     highlightErrors,

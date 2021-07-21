@@ -2,8 +2,13 @@
 	"name": "duden-mentor",
 	"displayName": "duden-mentor",
 	"description": "Extension to call duden.mentor with selected text",
-	"version": "0.0.1",
+	"version": "1.0.0",
+	"publisher": "KarlWolf",
 	"icon": "src/icon.png",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/risingwolf21/duden-mentor"
+	},
 	"keywords": [
 		"duden",
 		"mentor",
@@ -24,7 +29,7 @@
 	"activationEvents": [
 		"onCommand:duden-mentor.checkSpelling"
 	],
-	"main": "./src/extension.js",
+	"main": "/src/extension.js",
 	"contributes": {
 		"commands": [
 			{
@@ -55,6 +60,11 @@
 					"type": "string",
 					"default": "",
 					"description": "Your API-Key for Duden Mentor"
+				},
+				"duden-mentor.cookie": {
+					"type": "string",
+					"default": "",
+					"description": "The Cookie you get when you login with a premium account"
 				}
 			}
 		}
